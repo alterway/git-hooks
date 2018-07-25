@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Get hook directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Use dependency of block-write.
+. ${DIR}/src/block-write.sh
+
+# Use dependency of block-write.
+. ${DIR}/src/IFS-manager.sh
+
+FILESIZE=$(stat -c%s "$1")
+MAX_MSG_LENGTH=200
+MIN_MSG_LENGTH=15
+
+BAD_FORMAT="0"
+
+# Check if commit message starts with #[0-9]+
+FORMAT=$(grep -q -P "^#\d+" $1; echo $?)
+if [ $FORMAT -eq 1 ]; then
+    write_error_block "Bad format! You must start with '#<JIRA-TICKET-ID>'."
+    BAD_FORMAT="1"
+fi
+
+# Check max message length
+if [ $FILESIZE -gt $MAX_MSG_LENGTH ]; then
+    write_warning "Message length: "$FILESIZE
+    write_error_block "Message too long: must be less than $MAX_MSG_LENGTH characters."
+    clean_exit 1;
+fi
+
+# Check min message length
+if [ $FILESIZE -lt $MIN_MSG_LENGTH ]; then
+    write_warning "Message length: "$FILESIZE
+    write_error_block "Message too short: must be more than $MIN_MSG_LENGTH characters."
+    clean_exit 1;
+fi
+
+clean_exit ${BAD_FORMAT}

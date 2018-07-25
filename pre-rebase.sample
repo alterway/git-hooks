@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# Copyright (c) 2006, 2008 Junio C Hamano
+#
+# The "pre-rebase" hook is run just before "git rebase" starts doing
+# its job, and can prevent the command from running by exiting with
+# non-zero status.
+#
+# The hook is called with the following parameters:
+#
+# $1 -- the upstream the series was forked from.
+# $2 -- the branch being rebased (or empty when rebasing the current branch).
+#
+# This sample shows how to prevent topic branches that are already
+# merged to 'next' branch from getting rebased, because allowing it
+# would result in rebasing already published history.
+
+basebranch="$1"
+branch="$2"
+if test "$#" = 2
+then
+	topic="refs/heads/$2"
+else
+	topic=`git symbolic-ref HEAD` ||
+	exit 0 ;# we do not interrupt rebasing detached HEAD
+fi
+
+case "$topic" in
+refs/heads/??/*)
+	;;
+*)
+	exit 0 ;# we do not interrupt others.
+	;;
+esac
+
+# Now we are dealing with a topic branch being rebased
+# on top of master.  Is it OK to rebase it?
+
+# Does the topic really exist?
+git show-ref -q "$topic" || {
+	echo >&2 "No such branch $topic"
+	exit 1
+}
+
+# Is topic fully merged to master?
+not_in_master=`git rev-list --pretty=oneline ^master "$topic"`
+if test -z "$not_in_master"
+then
+	echo >&2 "$topic is fully merged to master; better remove it."
+	exit 1 ;# we could allow it, but there is no point.
+fi
+
+# we clone submodules
+list_submodules=$(git config --file .gitmodules --get-regexp path | awk '{ print $2 }')
+for submodule_name in $list_submodules ; do
+    if [ ! "$(ls $DIR/$submodule_name)" ]; then
+        rm -rf $DIR/$submodule_name
+    fi
+    submodule_url=$(git config -f .gitmodules --get submodule."$submodule_name".url)
+    git rm -r -f --cached $submodule_name || true
+    git submodule add --force $submodule_url $submodule_name
+    git reset HEAD $submodule_name
+done
+## update / initialize submodules
+git submodule --quiet update --init --recursive --rebase
+git submodule foreach git fetch --all
+git submodule foreach git reset --hard origin/master
+git submodule foreach git rebase origin/master
+
+# We refuses to rebase if "branch.${BRANCH}.rebaselock" is true.
+[ -n "$branch" ] || branch=`git rev-parse --abbrev-ref HEAD`
+lock="branch.${branch}.rebaselock"
+if [ x`git config --bool "$lock"` = xtrue ]; then
+    echo "pre-rebase hook: \"$lock\" is set to true. Refusing to rebase."
+    exit 1
+fi
+
+exit 0
