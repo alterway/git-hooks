@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# Get hook directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Use dependency of block-write.
+. ${DIR}/src/block-write.sh
+
+# Define the function that list all files to analyse depending on:
+# - git command that list files
+# - excluded folders
+# - excluded files
+. ${DIR}/src/get-file-list.sh
+
+remote="$1"
+url="$2"
+
+z40=0000000000000000000000000000000000000000
+
+AUTHORIZED_WIP="WIP"
+AUTHORIZED_FEATURE="feature"
+AUTHORIZED_HOTFIX="hotfix"
+
+# Check the branch name.
+# It must starts with "WIP", "feature", "hotfix"
+branchName=$(git rev-parse --abbrev-ref HEAD)
+while read local_ref local_sha remote_ref remote_sha
+do
+    # Replace the destination branch name if git push command was run with "branch1:branch2" syntax.
+    branchName=${remote_ref#'refs/heads/'}
+done
+prefixName=$(cut -d'/' -f 1 <<< ${branchName})
+
+if [ ${branchName} != "develop" -a ${prefixName} != "${AUTHORIZED_WIP}" -a ${prefixName} != "${AUTHORIZED_FEATURE}" -a ${prefixName} != "${AUTHORIZED_HOTFIX}" ]; then
+    # If branch prefix is not one of authorized one, you are not allowed to push.
+    echo
+    echo "# ERROR: Rename your branch with '${AUTHORIZED_WIP}', '${AUTHORIZED_FEATURE}' or '${AUTHORIZED_HOTFIX}' prefix before pushing your commits."
+    echo "# Try one of the following command depending of the category of work you are doing:"
+    echo "#    - git checkout -b ${AUTHORIZED_WIP}/${branchName}"
+    echo "#    - git checkout -b ${AUTHORIZED_FEATURE}/${branchName}"
+    echo "#    - git checkout -b ${AUTHORIZED_HOTFIX}/${branchName}"
+    echo
+    exit 255
+fi
+
+branchToCompare=""
+# Test existence of remote branch
+git ls-remote --exit-code origin ${branchName} 1>/dev/null 2>/dev/null
+if [ "$?" == "0" ]; then
+    branchToCompare="origin/${branchName}"
+else
+    echo
+    echo "# WARNING: Pushing on non-existent remote branch 'origin/${branchName}'."
+    echo "# Comparing with remote 'origin/develop'."
+    echo
+    branchToCompare="origin/develop"
+fi
+
+
+blocking_on_error_arg="-b"
+if [ ${prefixName} == "${AUTHORIZED_WIP}" ]; then
+    # If branch prefix is "${AUTHORIZED_WIP}", you are allowed to push in any case: meaning errors are not blocking.
+    blocking_on_error_arg=
+fi
+
+get_file_list "git diff --name-only --cached --diff-filter=ACM ${branchToCompare}"
+. ${DIR}/src/hook-checker.sh "${blocking_on_error_arg}"
+exit $?

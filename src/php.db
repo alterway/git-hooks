@@ -1,0 +1,63 @@
+# Extensions
+expect_
+pcntl_
+posix_
+# Semaphore extension
+ftok
+msg_get_queue
+msg_queue_exists
+msg_receive
+msg_remove_queue
+msg_send
+msg_set_queue
+msg_stat_queue
+sem_
+shm_
+shmop_
+# PHP - Database
+mysql_connect\s*\(.*\$.*\)
+mysql_pconnect\s*\(.*\$.*\)
+mysql_change_user\s*\(.*\$.*\)
+mysql_query\s*\(.*\$.*\)
+mysql_error\s*\(.*\$.*\)
+mysql_set_charset\s*\(.*\$.*\)
+mysql_unbuffered_query\s*\(.*\$.*\)
+pg_connect\s*\(.*\$.*\)
+pg_pconnect\s*\(.*\$.*\)
+pg_execute\s*\(.*\$.*\)
+pg_insert\s*\(.*\$.*\)
+pg_put_line\s*\(.*\$.*\)
+pg_query\s*\(.*\$.*\)
+pg_select\s*\(.*\$.*\)
+pg_send_query\s*\(.*\$.*\)
+pg_set_client_encoding\s*\(.*\$.*\)
+pg_update\s*\(.*\$.*\)
+php://stdin
+php://stdout
+php://stderr
+php://output
+php://input
+php://filter
+php://memory
+php://temp
+# PHP - Superglobals & Envoronment
+\$PHPSELF
+\$HTTP_GET_VARS
+\$http_get_vars
+\$HTTP_POST_VARS
+\$http_post_vars
+\$HTTP_ENV_VARS
+\$http_env_vars
+\$HTTP_RAW_POST_DATA
+\$http_raw_post_data
+\$HTTP_POST_FILES
+\$http_post_files
+# Otherstuffs
+header\s*\(.*\$_(GET|POST|REQUEST|COOKIE).*\)
+eval\s*\(\s*.\$.*\s*\)
+# PHP xss signatures
+echo\s+.*\$(_ENV|_GET|_POST|_COOKIE|_REQUEST|_SERVER|HTTP|http).*
+print\s+.*\$(_ENV|_GET|_POST|_COOKIE|_REQUEST|_SERVER|HTTP|http).*
+print_r(\s+|\s*\().*\$(_ENV|_GET|_POST|_COOKIE|_REQUEST|_SERVER|HTTP|http).*
+\<\?\=\$(_ENV|_GET|_POST|_COOKIE|_REQUEST|_SERVER|HTTP|http)
+\<\%\=\$(_ENV|_GET|_POST|_COOKIE|_REQUEST|_SERVER|HTTP|http)
